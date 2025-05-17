@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib
 import matplotlib.pyplot as plt
-from planets import Planet, Planets, load # Import from your file
+from Planets import *
 
 # --- Simulation Constants ---
 G_CONSTANT = 6.67430e-11       # Gravitational constant (m^3 kg^-1 s^-2)
@@ -63,8 +63,10 @@ planet_system = Planets(planets=planets,
                         axis=ax)
 '''
 
-planet_system = load("datas/Fourbody3.json", ax)
+planet_system = load("datas/Fourbody3_new.json", ax)
 planets = planet_system.planets
+
+#planet_system.save("datas/Fourbody3_new.json")
 
 ax.legend(loc="upper right")
 

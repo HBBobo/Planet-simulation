@@ -1,0 +1,74 @@
+{
+    "version": "1.0",
+    "planets": [
+        {
+            "name": "Asteroid1",
+            "mass": 4e+24,
+            "position": [
+                0.0,
+                42700000.0
+            ],
+            "velocity": [
+                -3000.0,
+                -3000.0
+            ],
+            "datapoints": 65536
+        },
+        {
+            "name": "Asteroid2",
+            "mass": 4e+24,
+            "position": [
+                0.0,
+                0.0
+            ],
+            "velocity": [
+                3000.0,
+                -3000.0
+            ],
+            "datapoints": 65536
+        },
+        {
+            "name": "Asteroid2",
+            "mass": 4e+24,
+            "position": [
+                42700000.0,
+                0.0
+            ],
+            "velocity": [
+                3000.0,
+                3000.0
+            ],
+            "datapoints": 65536
+        },
+        {
+            "name": "Asteroid2",
+            "mass": 4e+24,
+            "position": [
+                42700000.0,
+                42700000.0
+            ],
+            "velocity": [
+                -3000.0,
+                3000.0
+            ],
+            "datapoints": 65536
+        },
+        {
+            "name": "Asteroid2",
+            "mass": 4e+24,
+            "position": [
+                21350000.0,
+                21350000.0
+            ],
+            "velocity": [
+                1500.0,
+                0.0
+            ],
+            "datapoints": 65536
+        }
+    ],
+    "sps": 200,
+    "ms": 100000,
+    "G": 6.6743e-11,
+    "dt": 1.0
+}
