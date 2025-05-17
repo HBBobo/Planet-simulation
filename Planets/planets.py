@@ -16,13 +16,14 @@ class Planets:
     mass_all: np.ndarray # Shape: (N,)
 
     step: int
-    step_per_show: int
+    step_per_show: int   # refresh rate
+    step_per_point: int  # line plotting rate
     max_step: int
     G: float
     DT: float
     softening_factor_sq: float 
 
-    def __init__(self, axis: matplotlib.axes.Axes, planets: list[Planet], sps: int, ms: int, G: float, dt: float, softening_factor: float = 1e-9):
+    def __init__(self, axis: matplotlib.axes.Axes, planets: list[Planet], sps: int, spp: int, ms: int, G: float, dt: float, softening_factor: float = 1e-9):
         """
         Initializes the Planets class.
         
@@ -41,6 +42,7 @@ class Planets:
 
         self.step = 0
         self.step_per_show = sps
+        self.step_per_point = spp
         self.max_step = ms
 
         self.G = G
@@ -124,7 +126,9 @@ class Planets:
         
         accelerations = self._calculate_accelerations()
         self._move_planets(accelerations)
-        self._update_planet_objects()
+
+        if self.step % self.step_per_point == 0:
+            self._update_planet_objects()
 
         self.step += 1
         if self.step % self.step_per_show == 0:
@@ -150,6 +154,7 @@ class Planets:
             "version": "1.1",
             "planets": [p.to_dict() for p in self.planets],
             "sps": self.step_per_show,
+            "spp": self.step_per_point,
             "ms": self.max_step,
             "G": self.G,
             "dt": self.DT,
@@ -192,6 +197,7 @@ def planets_from_dict(axis: matplotlib.axes.Axes, data: dict) -> list[Planet]:
             planets=planet_list,
             axis=axis,
             sps=200,
+            spp=10,
             ms=100000,
             G=6.67430e-11,
             dt=2.0,
@@ -202,6 +208,7 @@ def planets_from_dict(axis: matplotlib.axes.Axes, data: dict) -> list[Planet]:
             planets=planet_list,
             axis=axis,
             sps=data["sps"],
+            spp=10,
             ms=data["ms"],
             G=data["G"],
             dt=data["dt"],
@@ -212,6 +219,7 @@ def planets_from_dict(axis: matplotlib.axes.Axes, data: dict) -> list[Planet]:
             planets=planet_list,
             axis=axis,
             sps=data["sps"],
+            spp=data["spp"],
             ms=data["ms"],
             G=data["G"],
             dt=data["dt"],

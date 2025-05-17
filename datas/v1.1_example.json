@@ -1,75 +1,76 @@
 {
     "version": "1.1",
     "planets": [
-        {
-            "name": "A",
-            "mass": 4e+24,
-            "position": [
-                0.0,
-                42700000.0
-            ],
-            "velocity": [
-                -3000.0,
-                -3000.0
-            ],
-            "datapoints": 65536
-        },
-        {
-            "name": "B",
-            "mass": 4e+24,
-            "position": [
-                0.0,
-                0.0
-            ],
-            "velocity": [
-                3000.0,
-                -3000.0
-            ],
-            "datapoints": 65536
-        },
-        {
-            "name": "C",
-            "mass": 4e+24,
-            "position": [
-                42700000.0,
-                0.0
-            ],
-            "velocity": [
-                3000.0,
-                3000.0
-            ],
-            "datapoints": 65536
-        },
-        {
-            "name": "D",
-            "mass": 4e+24,
-            "position": [
-                42700000.0,
-                42700000.0
-            ],
-            "velocity": [
-                -3000.0,
-                3000.0
-            ],
-            "datapoints": 65536
-        },
-        {
-            "name": "E",
-            "mass": 4e+24,
-            "position": [
-                21350000.0,
-                21350000.0
-            ],
-            "velocity": [
-                1500.0,
-                0.0
-            ],
-            "datapoints": 65536
-        }
+      {
+        "name": "A",
+        "mass": 4e+24,
+        "position": [
+          0.0,
+          42700000.0
+        ],
+        "velocity": [
+          -3000.0,
+          -3000.0
+        ],
+        "datapoints": 4096
+      },
+      {
+        "name": "B",
+        "mass": 4e+24,
+        "position": [
+          0.0,
+          0.0
+        ],
+        "velocity": [
+          3000.0,
+          -3000.0
+        ],
+        "datapoints": 4096
+      },
+      {
+        "name": "C",
+        "mass": 4e+24,
+        "position": [
+          42700000.0,
+          0.0
+        ],
+        "velocity": [
+          3000.0,
+          3000.0
+        ],
+        "datapoints": 4096
+      },
+      {
+        "name": "D",
+        "mass": 4e+24,
+        "position": [
+          42700000.0,
+          42700000.0
+        ],
+        "velocity": [
+          -2602.0,
+          3000.0
+        ],
+        "datapoints": 4096
+      },
+      {
+        "name": "E",
+        "mass": 4e+24,
+        "position": [
+          21350000.0,
+          21350000.0
+        ],
+        "velocity": [
+          1500.0,
+          0.0
+        ],
+        "datapoints": 4096
+      }
     ],
-    "sps": 250,
-    "ms": 1000000,
+    "sps": 500,
+    "spp": 100,
+    "ms": 300000,
     "G": 6.6743e-11,
     "dt": 1.0,
-    "softening_factor": 1e-07
+    "softening_factor": 1e-09
 }
