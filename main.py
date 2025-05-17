@@ -1,116 +1,184 @@
+# main.py
+
 import numpy as np
-import matplotlib
 import matplotlib.pyplot as plt
+from matplotlib.axes import Axes
+from matplotlib.figure import Figure
 from Planets import *
 
-# --- Simulation Constants ---
-G_CONSTANT = 6.67430e-11       # Gravitational constant (m^3 kg^-1 s^-2)
-DT = 0.2                      # Time step (seconds)
-NUM_STEPS = 1000000            # Total number of simulation steps
-ds = 2                  # Datapoints size
+SIMULATION_DATA_FILE = "datas/v1.1_example.json"
+DEFAULT_PLOT_LIMITS = (-1e8, 1e8)  # plot limit default values
+PLOT_PADDING_FACTOR = 0.20
+MIN_PLOT_PADDING = 1e6             # absolute minimum padding
 
-# --- Plotting Setup ---
-fig, ax = plt.subplots(figsize=(8, 8))
-plt.ion() # Interactive mode on
+def setup_plot() -> tuple[Figure, Axes]:
+    """
+    Initializes the plot for the simulation.
 
-ax.set_aspect('equal', adjustable='box')
-ax.set_title("Simulation (Testing Movement)")
-ax.set_xlabel("X position (10^8 m)")
-ax.set_ylabel("Y position (10^8 m)")
-ax.grid(True)
+    Returns:
+        tuple[Figure, Axes]: The figure and axes objects for the plot.
+    """
 
-ax.set_xlim(-1e8, 1e8)
-ax.set_ylim(-1e8, 1e8)
+    fig, ax = plt.subplots(figsize=(10, 10))
+    plt.ion()
 
-'''
-planets = [
-    Planet(name="Earth", mass=9.67e25,
-              pos=np.array([0.0, 0.0]),
-              vel=np.array([3.4e3, -1.0e3]),
-              datapoints=ds,
-              axis=ax),
+    ax.set_aspect('equal', adjustable='box')
+    ax.set_title("N-Body Simulation")
+    ax.set_xlabel("X position")
+    ax.set_ylabel("Y position")
+    ax.grid(True)
 
-    Planet(name="Moon", mass=1.67e24,
-              pos=np.array([0.0, -2.27e7]),
-              vel=np.array([-1.5e4, 0.0]),
-              datapoints=ds,
-              axis=ax),
+    ax.set_xlim(*DEFAULT_PLOT_LIMITS)
+    ax.set_ylim(*DEFAULT_PLOT_LIMITS)
+    return fig, ax
 
-    Planet(name="Asteroid1", mass=1.1e25,
-              pos=np.array([1.2e7, 5.27e7]),
-              vel=np.array([9.3e3, -1.1e4]),
-              datapoints=ds,
-              axis=ax),
 
-    Planet(name="Asteroid2", mass=1.5e24,
-              pos=np.array([-5.2e7, 3.27e7]),
-              vel=np.array([1.5e4, -2.5e3]),
-              datapoints=ds,
-              axis=ax),
+def update_plot_limits(ax: Axes, planets_list: list[Planet]):
+    """
+    Dynamically updates the plot limits based on the positions of the planets.
+    """
 
-    Planet(name="Asteroid3", mass=1.4e19,
-              pos=np.array([3.4e7, 5.78e6]),
-              vel=np.array([1.3e4, -1.5e4]),
-              datapoints=ds,
-              axis=ax)
-]
+    if not planets_list:
+        return
 
-planet_system = Planets(planets=planets,
-                        G=G_CONSTANT,
-                        dt=DT,
-                        ms=NUM_STEPS,
-                        sps=200,
-                        axis=ax)
-'''
+    min_x_seen = min(p.position[0] for p in planets_list if p.position is not None)
+    max_x_seen = max(p.position[0] for p in planets_list if p.position is not None)
+    min_y_seen = min(p.position[1] for p in planets_list if p.position is not None)
+    max_y_seen = max(p.position[1] for p in planets_list if p.position is not None)
 
-planet_system = load("datas/Fourbody3_new.json", ax)
-planets = planet_system.planets
+    if not all(np.isfinite(val) for val in [min_x_seen, max_x_seen, min_y_seen, max_y_seen]):
+        return
 
-#planet_system.save("datas/Fourbody3_new.json")
+    current_xlim = ax.get_xlim()
+    current_ylim = ax.get_ylim()
 
-ax.legend(loc="upper right")
+    padding_x = abs(max_x_seen - min_x_seen) * PLOT_PADDING_FACTOR + MIN_PLOT_PADDING
+    padding_y = abs(max_y_seen - min_y_seen) * PLOT_PADDING_FACTOR + MIN_PLOT_PADDING
 
-print("Starting simulation (testing movement)...")
-print("-" * 30)
+    new_xlim_min = min(current_xlim[0], min_x_seen - padding_x)
+    new_xlim_max = max(current_xlim[1], max_x_seen + padding_x)
+    new_ylim_min = min(current_ylim[0], min_y_seen - padding_y)
+    new_ylim_max = max(current_ylim[1], max_y_seen + padding_y)
 
-while True:
-    code = planet_system.step_forward()
+    span_x = new_xlim_max - new_xlim_min
+    span_y = new_ylim_max - new_ylim_min
+    max_span = max(span_x, span_y)
 
-    if code == 1:
-        min_x_seen, max_x_seen = float('inf'), float('-inf')
-        min_y_seen, max_y_seen = float('inf'), float('-inf')
+    center_x = (new_xlim_min + new_xlim_max) / 2
+    center_y = (new_ylim_min + new_ylim_max) / 2
 
-        for i, p in enumerate(planets):
+    final_xlim_min = center_x - max_span / 2
+    final_xlim_max = center_x + max_span / 2
+    final_ylim_min = center_y - max_span / 2
+    final_ylim_max = center_y + max_span / 2
 
-                min_x_seen = min(min_x_seen, p.position[0])
-                max_x_seen = max(max_x_seen, p.position[0])
-                min_y_seen = min(min_y_seen, p.position[1])
-                max_y_seen = max(max_y_seen, p.position[1])
+    if np.isfinite(final_xlim_min) and np.isfinite(final_xlim_max) and \
+       np.isfinite(final_ylim_min) and np.isfinite(final_ylim_max) and \
+       final_xlim_max > final_xlim_min and final_ylim_max > final_ylim_min:
 
-        current_xlim = ax.get_xlim()
-        current_ylim = ax.get_ylim()
+        ax.set_xlim(final_xlim_min, final_xlim_max)
+        ax.set_ylim(final_ylim_min, final_ylim_max)
 
-        # Dynamically adjust the limits based on the min/max positions seen (20% padding)
-        padding_x = abs(max_x_seen - min_x_seen) * 0.20 + 1e6
-        padding_y = abs(max_y_seen - min_y_seen) * 0.20 + 1e6
 
-        new_xlim_min = min(current_xlim[0], min_x_seen - padding_x)
-        new_xlim_max = max(current_xlim[1], max_x_seen + padding_x)
-        new_ylim_min = min(current_ylim[0], min_y_seen - padding_y)
-        new_ylim_max = max(current_ylim[1], max_y_seen + padding_y)
+def run_simulation(planet_system: Planets, ax: Axes):
+    """
+    Runs the simulation step by step, updating the plot as needed.
+    """
 
-        new_max = max(new_xlim_max, new_ylim_max)
-        new_min = min(new_xlim_min, new_ylim_min)
+    print("Starting simulation...")
+    print("-" * 30)
 
-        if np.isfinite(new_min) and np.isfinite(new_max) and new_max > new_min:
-            ax.set_xlim(new_min, new_max)
-            ax.set_ylim(new_min, new_max)
+    running = True
+    while running:
+        simulation_code = planet_system.step_forward()
 
-        plt.pause(1e-6) # Save the CPU :D
+        if simulation_code == 1:
+            update_plot_limits(ax, planet_system.planets)
+            plt.pause(1e-6)
 
-    elif code == 2:
-        print("Simulation finished.")
-        break
+        elif simulation_code == 2:
+            print("Pausing simulation")
+            running = False
+    
+    print("-" * 30)
+    print("Finishing simulation")
 
-plt.ioff()
-plt.show()
+
+def create_example_planet_system(ax: Axes, G_const: float, dt_val: float, num_steps: int, steps_per_show: int, datapoints_hist: int) -> Planets:
+    """
+    Creates an example planetary system for demonstration purposes.
+    """
+
+    planets_list = [
+        Planet(name="Sun", mass=1.989e30,
+               pos=np.array([0.0, 0.0]),
+               vel=np.array([0.0, 0.0]),
+               datapoints=datapoints_hist,
+               axis=ax),
+        Planet(name="Earth", mass=5.972e24,
+               pos=np.array([1.496e11, 0.0]),
+               vel=np.array([0.0, 2.978e4]),
+               datapoints=datapoints_hist,
+               axis=ax),
+        Planet(name="Moon", mass=7.342e22,
+               pos=np.array([1.496e11 + 3.844e8, 0.0]),
+               vel=np.array([0.0, 2.978e4 + 1.022e3]),
+               datapoints=datapoints_hist,
+               axis=ax)
+    ]
+
+    return Planets(planets=planets_list,
+                   G=G_const,
+                   dt=dt_val,
+                   ms=num_steps,
+                   sps=steps_per_show,
+                   axis=ax)
+
+def main():
+    """
+    Main function to run the simulation.
+    """
+
+    fig, ax = setup_plot()
+    planet_system = None
+
+    try:
+        print(f"Loading simulation: {SIMULATION_DATA_FILE}")
+        planet_system = load(SIMULATION_DATA_FILE, ax)
+
+    except FileNotFoundError:
+        print(f"Error: the '{SIMULATION_DATA_FILE}' file was not found.")
+
+        G_CONSTANT_EX = 6.67430e-11
+        DT_EX = 1000
+        NUM_STEPS_EX = 50000
+        STEPS_PER_SHOW_EX = 50
+        DATAPOINTS_HISTORY_EX = 500
+        planet_system = create_example_planet_system(ax, G_CONSTANT_EX, DT_EX, NUM_STEPS_EX, STEPS_PER_SHOW_EX, DATAPOINTS_HISTORY_EX)
+
+    except Exception as e:
+        print(f"Error: An unexpected error occurred: {e}")
+        plt.ioff()
+        plt.close(fig)
+        return
+
+    if planet_system is None or not planet_system.planets:
+        print("Error: No planets found in the simulation data.")
+        plt.ioff()
+        plt.close(fig)
+        return
+
+    for p in planet_system.planets:
+        p.show()
+    ax.legend(loc="upper right")
+    plt.draw()
+
+    # planet_system.save("datas/v1.1_example.json")
+
+    run_simulation(planet_system, ax)
+
+    plt.ioff()
+    plt.show()
+
+if __name__ == "__main__":
+    main()

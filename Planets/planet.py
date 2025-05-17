@@ -1,4 +1,4 @@
-from utils.circuit_buffer import CircularBuffer
+from utils.circular_buffer import CircularBuffer
 
 import numpy as np
 from numpy.typing import NDArray
@@ -58,18 +58,11 @@ class Planet:
             str: A string representation of the Satellite object.
         """
 
-        pos_str = "N/A"
-        vel_str = "N/A"
-        if self.position is not None and len(self.position) >= 2:
-            pos_str = f"[{self.position[0]:.2f}, {self.position[1]:.2f}] m"
+        pos_str = f"[{self.position[0]:.2e}, {self.position[1]:.2e}] m"
+        vel_str = f"[{self.velocity[0]:.2e}, {self.velocity[1]:.2e}] m/s"
 
-        if self.velocity is not None and len(self.velocity) >= 2:
-            vel_str = f"[{self.velocity[0]:.2f}, {self.velocity[1]:.2f}] m/s"
-
-        return (f"Satellite '{self.name}':\n"
-                f"\tMass: {self.mass} kg\n"
-                f"\tPosition: {pos_str}\n"
-                f"\tVelocity: {vel_str}")
+        return (f"Planet '{self.name}': Mass: {self.mass:.2e} kg, "
+                f"Pos: {pos_str}, Vel: {vel_str}")
 
 
     def getHistory(self) -> NDArray[np.float64]:
@@ -83,16 +76,13 @@ class Planet:
         return self.position_history.get()
 
 
-    def move(self, dt: float):
+    def update_display_data(self, new_position: NDArray[np.float64], new_velocity: NDArray[np.float64]):
         """
-        Moves the satellite by updating its position based on its velocity.
-
-        Args:
-            dt (float): Time step for the movement.
+        Updates the display data of the satellite.
         """
-
-        self.position += self.velocity * dt
-        self.position_history.append(self.position.copy())
+        self.position = new_position.copy()
+        self.velocity = new_velocity.copy()
+        self.position_history.append(self.position)
 
 
     def show(self):
@@ -114,7 +104,7 @@ class Planet:
             "mass": self.mass,
             "position": self.position.tolist(),
             "velocity": self.velocity.tolist(),
-            "datapoints": self.maxIndex
+            "datapoints": self.position_history.size
         }
 
 
@@ -134,39 +124,3 @@ def planet_from_dict(axis: matplotlib.axes.Axes, data: dict) -> Planet:
         axis=axis,
         datapoints=data.get("datapoints", 65536)
     )
-
-
-def acceleration(sat1: Planet, sat2: Planet, G: float, dt: float):
-    """
-    Calculates the gravitational acceleration between two satellites, and updates their velocities.
-
-    Args:
-        sat1 (Satellite): The first satellite.
-        sat2 (Satellite): The second satellite.
-        G (float): Gravitational constant.
-        dt (float): Time step.
-
-    Raises:
-        ValueError: If the distance between the two satellites is zero.
-    """
-
-    diff = sat1.position - sat2.position
-    dist = np.linalg.norm(diff)
-
-    if dist == 0:
-        raise ValueError("Distance between satellites cannot be zero.")
-
-    unit_vector = diff / dist
-
-    dist_square = dist ** 2
-
-    acc1 = (-unit_vector * (G * sat2.mass)) / (dist_square)
-    acc2 = ( unit_vector * (G * sat1.mass)) / (dist_square)
-
-    sat1.velocity += acc1 * dt
-    sat2.velocity += acc2 * dt
-
-
-#-----------------------------------------------------------------------------------
-
-

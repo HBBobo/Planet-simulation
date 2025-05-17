@@ -1,4 +1,4 @@
-from .planet import Planet, acceleration, planet_from_dict
+from .planet import Planet, planet_from_dict
 
 import numpy as np
 from numpy.typing import NDArray
@@ -10,13 +10,19 @@ class Planets:
     
     planets: list[Planet]
     axis: matplotlib.axes.Axes
+
+    pos_all: np.ndarray  # Shape: (N, 2)
+    vel_all: np.ndarray  # Shape: (N, 2)
+    mass_all: np.ndarray # Shape: (N,)
+
     step: int
     step_per_show: int
     max_step: int
     G: float
     DT: float
+    softening_factor_sq: float 
 
-    def __init__(self, axis: matplotlib.axes.Axes, planets: list[Planet], sps: int, ms: int, G: float, dt: float):
+    def __init__(self, axis: matplotlib.axes.Axes, planets: list[Planet], sps: int, ms: int, G: float, dt: float, softening_factor: float = 1e-9):
         """
         Initializes the Planets class.
         
@@ -27,6 +33,7 @@ class Planets:
             ms (int): Maximum steps.
             G (float): Gravitational constant.
             dt (float): Time step.
+            softening_factor (float): Softening factor for gravitational force calculation.
         """
 
         self.planets = planets
@@ -38,94 +45,96 @@ class Planets:
 
         self.G = G
         self.DT = dt
+        self.softening_factor_sq = softening_factor ** 2
+        self._initialize_arrays()
 
 
-    def add(self, planet: Planet):
+    def _initialize_arrays(self):
         """
-        Adds a planet to the list.
-
-        Args:
-            planet (Planet): The planet to add.
-        """
-
-        self.planets.append(planet)
-
-
-    def get(self, index: int) -> Planet:
-        """
-        Gets a planet by index.
-
-        Args:
-            index (int): The index of the planet to get.
-
-        Returns:
-            planet (Planet): The planet at the specified index.
+        Helper to populate internal NumPy arrays from the list of Planet objects.
         """
 
-        return self.planets[index]
+        num_planets = len(self.planets)
+        if num_planets == 0:
+            self.pos_all = np.empty((0, 2), dtype=np.float64)
+            self.vel_all = np.empty((0, 2), dtype=np.float64)
+            self.mass_all = np.empty((0,), dtype=np.float64)
+            return
+
+        self.pos_all = np.array([p.position for p in self.planets], dtype=np.float64)
+        self.vel_all = np.array([p.velocity for p in self.planets], dtype=np.float64)
+        self.mass_all = np.array([p.mass for p in self.planets], dtype=np.float64)
 
 
-    def remove(self, planet: Planet):
+    def _update_planet_objects(self):
         """
-        Removes a planet from the list.
-
-        Args:
-            planet (Planet): The planet to remove.
-        """
-
-        self.planets.remove(planet)
-
-
-    def acceleration(self):
-        """
-        Calculates the gravitational acceleration between all planets in the list.
+        Updates the planet objects with the current positions and velocities.
         """
 
-        for i in range(len(self.planets)):
-            for j in range(i + 1, len(self.planets)):
-
-                try:
-                    acceleration(self.planets[i], self.planets[j], self.G, self.DT)
-
-                except ValueError as e:
-                    print(f"Pair ({self.planets[i].name}, {self.planets[j].name}): ValueError: {e}")
-
-                except Exception as e:
-                    print(f"Pair ({self.planets[i].name}, {self.planets[j].name}): An unexpected error occurred: {e}")
-                    raise
+        for i, planet_obj in enumerate(self.planets):
+            planet_obj.update_display_data(self.pos_all[i], self.vel_all[i])
 
 
-    def move(self):
+    def _calculate_accelerations(self) -> NDArray[np.float64]:
         """
-        Moves all planets in the list.
+        Calculates the accelerations of all planets in the system.
         """
-        for planet in self.planets:
-            planet.move(self.DT)
+
+        n_planets = len(self.planets)
+        if n_planets < 2:
+            return np.zeros_like(self.pos_all)
+
+        # diff_x[i, j] = pos_all[i, 0] - pos_all[j, 0]
+        # diff_y[i, j] = pos_all[i, 1] - pos_all[j, 1]
+        diff_x = self.pos_all[:, np.newaxis, 0] - self.pos_all[np.newaxis, :, 0] # Shape: (N, N)
+        diff_y = self.pos_all[:, np.newaxis, 1] - self.pos_all[np.newaxis, :, 1] # Shape: (N, N)
+        
+        # dist_sq[i,j] = |r_i - r_j|^2
+        dist_sq = diff_x**2 + diff_y**2 + self.softening_factor_sq # Shape: (N, N)
+        
+        # set the diagonal to inf to avoid self-interaction
+        np.fill_diagonal(dist_sq, np.inf)
+        
+        # Invers distance: 1 / |r_i - r_j|^3 = (dist_sq)^(-3/2)
+        inv_dist_cubed = dist_sq**(-1.5) # Shape: (N, N)
+
+        # a_i = sum_{j!=i} G * m_j * (r_j - r_i) / |r_i - r_j|^3
+        # Broadcasting mass_all to (N, 1) to match the shape of diff_x and diff_y
+        ax = self.G * np.sum(-diff_x * self.mass_all[np.newaxis, :] * inv_dist_cubed, axis=1) # Shape: (N,)
+        ay = self.G * np.sum(-diff_y * self.mass_all[np.newaxis, :] * inv_dist_cubed, axis=1) # Shape: (N,)
+        
+        return np.stack((ax, ay), axis=1) # Shape: (N, 2)
+
+
+    def _move_planets(self, accelerations: np.ndarray):
+        """
+        Updates the positions and velocities of all planets in the system.
+        """
+        self.vel_all += accelerations * self.DT
+        self.pos_all += self.vel_all * self.DT
 
 
     def step_forward(self) -> int:
         """
         Steps forward in the simulation.
-
-        Returns:
-            int: 0 if the simulation is still running, 1 if the simulation is paused for showing, 2 if the simulation is finished.
+        Returns: 0 (running), 1 (show frame), 2 (finished).
         """
-
-        self.acceleration()
-        self.move()
-
-        if self.step % self.step_per_show == 0:
-            for planet in self.planets:
-                planet.show()
-
-            self.step += 1
-            return 1
+        if self.step >= self.max_step:
+            return 2
+        
+        accelerations = self._calculate_accelerations()
+        self._move_planets(accelerations)
+        self._update_planet_objects()
 
         self.step += 1
+        if self.step % self.step_per_show == 0:
+            for planet_obj in self.planets:
+                planet_obj.show()
+            return 1
 
         if self.step >= self.max_step:
             return 2
-
+            
         return 0
 
 
@@ -138,12 +147,13 @@ class Planets:
         """
 
         return {
-            "version": "1.0",
-            "planets": [planet.to_dict() for planet in self.planets],
+            "version": "1.1",
+            "planets": [p.to_dict() for p in self.planets],
             "sps": self.step_per_show,
             "ms": self.max_step,
             "G": self.G,
-            "dt": self.DT
+            "dt": self.DT,
+            "softening_factor": np.sqrt(self.softening_factor_sq)
         }
 
 
@@ -162,17 +172,6 @@ class Planets:
     def __getitem__(self, index: int) -> Planet:
         return self.planets[index]
 
-    def __setitem__(self, index: int, planet: Planet):
-        if index < 0 or index >= len(self.planets):
-            raise IndexError("Index out of range.")
-        self.planets[index] = planet
-
-    def __delitem__(self, index: int):
-        if index < 0 or index >= len(self.planets):
-            raise IndexError("Index out of range.")
-        del self.planets[index]
-
-
 
 def planets_from_dict(axis: matplotlib.axes.Axes, data: dict) -> list[Planet]:
     """
@@ -185,27 +184,41 @@ def planets_from_dict(axis: matplotlib.axes.Axes, data: dict) -> list[Planet]:
         list[Satellite]: A list of Satellite objects.
     """
 
-    if "version" in data:
-        version = data["version"]
-
-    else:
-        version = "0.0"
+    version = data.get("version", "0.0") # Default verzió, ha hiányzik
+    planet_list = [planet_from_dict(axis, p_data) for p_data in data.get("planets", data)]
 
     if version == "0.0":
-        return Planets(planets = [planet_from_dict(axis, planet) for planet in data],
-                       axis = axis,
-                       sps = 200,
-                       ms = 100000,
-                       G = 6.67430e-11,
-                       dt = 2.0)
-
+        return Planets(
+            planets=planet_list,
+            axis=axis,
+            sps=200,
+            ms=100000,
+            G=6.67430e-11,
+            dt=2.0,
+            softening_factor=1e-9
+        )
     elif version == "1.0":
-        return Planets(planets=[planet_from_dict(axis, planet) for planet in data["planets"]],
-                       axis=axis,
-                       sps=data["sps"],
-                       ms=data["ms"],
-                       G=data["G"],
-                       dt=data["dt"])
+         return Planets(
+            planets=planet_list,
+            axis=axis,
+            sps=data["sps"],
+            ms=data["ms"],
+            G=data["G"],
+            dt=data["dt"],
+            softening_factor=1e-9
+        )
+    elif version == "1.1":
+        return Planets(
+            planets=planet_list,
+            axis=axis,
+            sps=data["sps"],
+            ms=data["ms"],
+            G=data["G"],
+            dt=data["dt"],
+            softening_factor=data.get("softening_factor", 1e-9)
+        )
+    else:
+        raise ValueError(f"Unsupported data version: {version}")
 
 
 def load(path: str, axis: matplotlib.axes.Axes) -> Planets:
