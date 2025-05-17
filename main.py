@@ -1,13 +1,13 @@
 import numpy as np
 import matplotlib
 import matplotlib.pyplot as plt
-from planets import Planet, Planets # Import from your file
+from planets import Planet, Planets, load # Import from your file
 
 # --- Simulation Constants ---
 G_CONSTANT = 6.67430e-11       # Gravitational constant (m^3 kg^-1 s^-2)
-DT = 1.0                      # Time step (seconds)
+DT = 0.2                      # Time step (seconds)
 NUM_STEPS = 1000000            # Total number of simulation steps
-ds = 102400                      # Datapoints size
+ds = 2                  # Datapoints size
 
 # --- Plotting Setup ---
 fig, ax = plt.subplots(figsize=(8, 8))
@@ -22,6 +22,7 @@ ax.grid(True)
 ax.set_xlim(-1e8, 1e8)
 ax.set_ylim(-1e8, 1e8)
 
+'''
 planets = [
     Planet(name="Earth", mass=9.67e25,
               pos=np.array([0.0, 0.0]),
@@ -31,7 +32,7 @@ planets = [
 
     Planet(name="Moon", mass=1.67e24,
               pos=np.array([0.0, -2.27e7]),
-              vel=np.array([-2.0e4, 0.0]),
+              vel=np.array([-1.5e4, 0.0]),
               datapoints=ds,
               axis=ax),
 
@@ -58,8 +59,12 @@ planet_system = Planets(planets=planets,
                         G=G_CONSTANT,
                         dt=DT,
                         ms=NUM_STEPS,
-                        sps=1000,
+                        sps=200,
                         axis=ax)
+'''
+
+planet_system = load("datas/Fourbody3.json", ax)
+planets = planet_system.planets
 
 ax.legend(loc="upper right")
 

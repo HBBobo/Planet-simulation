@@ -2,7 +2,7 @@ import numpy as np
 from numpy.typing import NDArray
 import matplotlib
 import matplotlib.pyplot as plt
-
+import json
 
 class Planet:
 
@@ -17,7 +17,7 @@ class Planet:
     marker: matplotlib.lines.Line2D
     line: matplotlib.lines.Line2D
 
-    def __init__(self, axis: matplotlib.axes.Axes, name: str, mass: float, pos: NDArray[np.float64], vel: NDArray[np.float64], datapoints: int = 1024):
+    def __init__(self, axis: matplotlib.axes.Axes, name: str, mass: float, pos: NDArray[np.float64], vel: NDArray[np.float64], datapoints: int = 65536):
         """
         Initialization of the Satellite class.
 
@@ -269,6 +269,7 @@ class Planets:
 
         self.planets.remove(planet)
 
+
     def acceleration(self):
         """
         Calculates the gravitational acceleration between all planets in the list.
@@ -326,8 +327,44 @@ class Planets:
 
         return len(self.planets)
 
+    def __getitem__(self, index: int) -> Planet:
 
-def from_dict(axis: matplotlib.axes.Axes, data: dict) -> Planet:
+        return self.planets[index]
+
+    def __setitem__(self, index: int, planet: Planet):
+
+        if index < 0 or index >= len(self.planets):
+            raise IndexError("Index out of range.")
+        self.planets[index] = planet
+
+
+    def to_dict(self) -> dict:
+        """
+        Converts the Planets object to a dictionary.
+
+        Returns:
+            dict: A dictionary representation of the Planets object.
+        """
+
+        return {
+            "planets": [planet.to_dict() for planet in self.planets],
+            "sps": self.step_per_show,
+            "ms": self.max_step,
+            "G": self.G,
+            "dt": self.DT
+        }
+
+
+    def save(self, path:str):
+        """
+        Saves the current state of the planets to a file.
+        """
+
+        with open(path, "w") as file:
+            json.dump(self.to_dict(), file, indent=4)
+
+
+def planet_from_dict(axis: matplotlib.axes.Axes, data: dict) -> Planet:
     """
     Creates a Satellite object from a dictionary.
     Args:
@@ -342,3 +379,54 @@ def from_dict(axis: matplotlib.axes.Axes, data: dict) -> Planet:
         vel=np.array(data["velocity"], dtype=np.float64),
         axis=axis
     )
+
+
+def planets_from_dict(axis: matplotlib.axes.Axes, data: dict) -> list[Planet]:
+    """
+    Creates a list of Satellite objects from a list of dictionaries.
+
+    Args:
+        data (list[dict]): A list of dictionaries containing the satellites' attributes.
+
+    Returns:
+        list[Satellite]: A list of Satellite objects.
+    """
+
+    if "version" in data:
+        version = data["version"]
+
+    else:
+        version = "0.0"
+
+    if version == "0.0":
+        return Planets(planets = [planet_from_dict(axis, planet) for planet in data],
+                       axis = axis,
+                       sps = 200,
+                       ms = 100000,
+                       G = 6.67430e-11,
+                       dt = 2.0)
+
+    elif version == "1.0":
+        return Planets(planets=[planet_from_dict(axis, planet) for planet in data["planets"]],
+                       axis=axis,
+                       sps=data["sps"],
+                       ms=data["ms"],
+                       G=data["G"],
+                       dt=data["dt"])
+
+
+def load(path: str, axis: matplotlib.axes.Axes) -> Planets:
+    """
+    Loads the planets from a file.
+
+    Args:
+        path (str): The path to the file containing the planets' attributes.
+        axis (matplotlib.axes.Axes): The axis on which to plot the planets.
+
+    Returns:
+        Planets: A Planets object.
+    """
+    
+    with open(path, "r") as file:
+        data = json.load(file)
+    return planets_from_dict(axis, data)

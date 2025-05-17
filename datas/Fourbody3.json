@@ -1,0 +1,62 @@
+[
+	{
+		"name": "Asteroid1",
+		"mass": 4e+24,
+		"position": [
+			0.0,
+			42700000.0
+		],
+		"velocity": [
+			-2000.0,
+			-2000.0
+		]
+	},
+	{
+		"name": "Asteroid2",
+		"mass": 4e+24,
+		"position": [
+			0.0,
+			0.0
+		],
+		"velocity": [
+			2000.0,
+			-2000.0
+		]
+	},
+	{
+		"name": "Asteroid2",
+		"mass": 4e+24,
+		"position": [
+			42700000.0,
+			0.0
+		],
+		"velocity": [
+			2000.0,
+			2000.0
+		]
+	},
+	{
+		"name": "Asteroid2",
+		"mass": 4e+24,
+		"position": [
+			42700000.0,
+			42700000.0
+		],
+		"velocity": [
+			-2000.0,
+			2000.0
+		]
+	},
+	{
+		"name": "Asteroid2",
+		"mass": 4e+24,
+		"position": [
+			21350000.0,
+			21350000.0
+		],
+		"velocity": [
+			1000.0,
+			0.0
+		]
+	}
+]
